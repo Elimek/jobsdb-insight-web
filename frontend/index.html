@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobsDB Insight - 岗位竞争分析</title>
+<script src="config.js" defer></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0f172a; color:#e2e8f0; min-height:100vh; }
+.header { background:linear-gradient(135deg,#1e293b,#0f172a); border-bottom:1px solid #1e293b; padding:20px; text-align:center; }
+.header h1 { font-size:28px; background:linear-gradient(135deg,#60a5fa,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.header p { color:#64748b; font-size:14px; margin-top:4px; }
+.container { max-width:900px; margin:0 auto; padding:20px; }
+
+/* Search */
+.search-box { background:#1e293b; border-radius:16px; padding:24px; margin-bottom:20px; }
+.search-box label { display:block; font-size:14px; color:#94a3b8; margin-bottom:8px; }
+.search-row { display:flex; gap:10px; }
+.search-row input { flex:1; background:#0f172a; border:1px solid #334155; border-radius:10px; padding:14px 18px; font-size:16px; color:#e2e8f0; outline:none; transition:border .2s; }
+.search-row input:focus { border-color:#60a5fa; }
+.search-row input::placeholder { color:#475569; }
+.search-row button { background:linear-gradient(135deg,#60a5fa,#3b82f6); border:none; border-radius:10px; padding:14px 28px; font-size:16px; font-weight:600; color:#fff; cursor:pointer; transition:opacity .2s; white-space:nowrap; }
+.search-row button:hover { opacity:.85; }
+.search-row button:disabled { opacity:.4; cursor:not-allowed; }
+.hint { font-size:12px; color:#475569; margin-top:8px; }
+.hint a { color:#60a5fa; text-decoration:none; }
+.hint a:hover { text-decoration:underline; }
+
+/* Batch input */
+.batch-toggle { color:#60a5fa; font-size:13px; cursor:pointer; margin-top:8px; display:inline-block; }
+.batch-input { display:none; margin-top:8px; }
+.batch-input textarea { width:100%; background:#0f172a; border:1px solid #334155; border-radius:10px; padding:12px; font-size:13px; color:#e2e8f0; resize:vertical; min-height:80px; outline:none; font-family:monospace; }
+.batch-input textarea:focus { border-color:#60a5fa; }
+.batch-input.show { display:block; }
+
+/* Result card */
+.result { display:none; background:#1e293b; border-radius:16px; padding:24px; margin-bottom:16px; }
+.result.show { display:block; }
+.result-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+.result-title { font-size:18px; font-weight:600; }
+.result-title small { display:block; color:#94a3b8; font-size:13px; font-weight:400; margin-top:2px; }
+.result-id { font-family:monospace; font-size:12px; color:#64748b; }
+.metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+.metric { text-align:center; padding:16px; border-radius:12px; }
+.metric.applicants { background:linear-gradient(135deg,rgba(96,165,250,0.15),rgba(167,139,250,0.15)); }
+.metric.resume { background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(16,185,129,0.15)); }
+.metric.cover { background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(245,158,11,0.15)); }
+.metric-value { font-size:36px; font-weight:700; line-height:1.1; }
+.metric.applicants .metric-value { background:linear-gradient(135deg,#60a5fa,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.metric.resume .metric-value { color:#34d399; }
+.metric.cover .metric-value { color:#fbbf24; }
+.metric-label { font-size:12px; color:#94a3b8; margin-top:4px; }
+.metric-sub { font-size:11px; color:#475569; margin-top:2px; }
+.competition-badge { display:inline-block; padding:4px 16px; border-radius:20px; font-size:13px; font-weight:600; margin-top:12px; }
+.competition-badge.high { background:rgba(248,113,113,0.15); color:#f87171; }
+.competition-badge.mid { background:rgba(251,191,36,0.15); color:#fbbf24; }
+.competition-badge.low { background:rgba(52,211,153,0.15); color:#34d399; }
+.competition-badge.na { background:rgba(100,116,139,0.15); color:#64748b; }
+
+/* Batch results table */
+.batch-results { display:none; margin-top:16px; }
+.batch-results.show { display:block; }
+table { width:100%; border-collapse:collapse; background:#1e293b; border-radius:12px; overflow:hidden; }
+th { background:#334155; padding:10px 14px; text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:#94a3b8; }
+td { padding:10px 14px; border-bottom:1px solid #2d3a4e; font-size:14px; }
+tr:hover { background:#263548; }
+.num { font-family:'Fira Code',monospace; font-weight:600; }
+.tag { display:inline-block; padding:1px 8px; border-radius:12px; font-size:11px; font-weight:600; }
+.tag.high { background:rgba(248,113,113,0.15); color:#f87171; }
+.tag.mid { background:rgba(251,191,36,0.15); color:#fbbf24; }
+.tag.low { background:rgba(52,211,153,0.15); color:#34d399; }
+
+/* Loading */
+.loading { display:none; text-align:center; padding:40px; }
+.loading.show { display:block; }
+.spinner { width:40px; height:40px; border:3px solid #1e293b; border-top:3px solid #60a5fa; border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Error */
+.error-box { display:none; background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.2); border-radius:12px; padding:16px; margin-bottom:16px; color:#f87171; font-size:14px; }
+.error-box.show { display:block; }
+
+/* Stats summary */
+.stats-summary { display:none; margin-bottom:16px; }
+.stats-summary.show { display:block; }
+.stats-cards { display:flex; gap:10px; flex-wrap:wrap; }
+.stat-card { flex:1; min-width:80px; background:#1e293b; border-radius:10px; padding:12px; text-align:center; }
+.stat-card .stat-num { font-size:22px; font-weight:700; color:#60a5fa; display:block; }
+.stat-card .stat-label { font-size:11px; color:#64748b; }
+
+/* History */
+.history { margin-top:24px; }
+.history h3 { font-size:14px; color:#64748b; margin-bottom:8px; }
+.history-items { display:flex; flex-wrap:wrap; gap:6px; }
+.history-item { padding:4px 12px; background:#1e293b; border-radius:6px; font-size:12px; color:#94a3b8; cursor:pointer; transition:background .2s; }
+.history-item:hover { background:#334155; color:#e2e8f0; }
+
+.footer { text-align:center; padding:20px; color:#475569; font-size:12px; }
+.footer a { color:#60a5fa; text-decoration:none; }
+code { font-family:'Fira Code',monospace; font-size:12px; color:#60a5fa; background:rgba(96,165,250,0.1); padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 JobsDB Insight</h1>
+  <p>实时查询岗位申请人数 · 无需申请</p>
+</div>
+
+<div class="container">
+
+  <!-- Search -->
+  <div class="search-box">
+    <label>输入 JobsDB 岗位 ID 或 URL</label>
+    <div class="search-row">
+      <input type="text" id="jobInput" placeholder="例: 91640131 或 https://hk.jobsdb.com/job/91640131" autocomplete="off">
+      <button id="searchBtn" onclick="search()">🔍 查询</button>
+    </div>
+    <div class="hint">
+      支持批量 —
+      <span class="batch-toggle" onclick="toggleBatch()">切换到批量模式</span>
+      &nbsp;·&nbsp; 开源项目 <a href="https://github.com/Elimek/jobsdb-insight-web" target="_blank">GitHub</a>
+    </div>
+    <div class="batch-input" id="batchInput">
+      <textarea id="batchTextarea" placeholder="每行一个岗位 ID&#10;91640131&#10;92206861&#10;92136321"></textarea>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div style="color:#64748b;font-size:14px;">查询中...</div>
+  </div>
+
+  <!-- Single Result -->
+  <div class="result" id="singleResult">
+    <div class="result-header">
+      <div>
+        <div class="result-title" id="resultTitle"></div>
+        <div class="result-id" id="resultId"></div>
+      </div>
+      <div class="competition-badge" id="resultBadge"></div>
+    </div>
+    <div class="metrics">
+      <div class="metric applicants">
+        <div class="metric-value" id="metricApplicants">—</div>
+        <div class="metric-label">总申请人数</div>
+        <div class="metric-sub" id="metricApplicantsSub"></div>
+      </div>
+      <div class="metric resume">
+        <div class="metric-value" id="metricResume">—</div>
+        <div class="metric-label">附简历</div>
+        <div class="metric-sub" id="metricResumeSub"></div>
+      </div>
+      <div class="metric cover">
+        <div class="metric-value" id="metricCover">—</div>
+        <div class="metric-label">Cover Letter</div>
+        <div class="metric-sub" id="metricCoverSub"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch Results -->
+  <div class="batch-results" id="batchResults">
+    <div class="stats-summary" id="statsSummary">
+      <div class="stats-cards" id="statsCards"></div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Job ID</th><th>岗位</th><th>👥 申请人数</th><th>📄 简历</th><th>✉️ Cover</th><th>竞争</th>
+      </tr></thead>
+      <tbody id="batchTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- History -->
+  <div class="history" id="history">
+    <h3>📋 查询历史</h3>
+    <div class="history-items" id="historyItems"></div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Built with <a href="https://github.com/Elimek/jobsdb-insight-web">JobsDB Insight</a> · 
+  Data from JobsDB HK GraphQL API · Not affiliated with JobsDB
+</div>
+
+<script>
+const historyKey = 'jobsdb_insight_history';
+let history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+
+function init() {
+  renderHistory();
+  document.getElementById('jobInput').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+}
+
+function getJobId(input) {
+  input = input.trim();
+  // URL: extract ID from /job/XXXXX
+  const urlMatch = input.match(/\/job\/(\d{8})/);
+  if (urlMatch) return urlMatch[1];
+  // Just digits
+  if (/^\d{8}$/.test(input)) return input;
+  return null;
+}
+
+function toggleBatch() {
+  const bi = document.getElementById('batchInput');
+  bi.classList.toggle('show');
+  document.querySelector('.batch-toggle').textContent = bi.classList.contains('show') ? '切换到单查询' : '切换到批量模式';
+}
+
+function showError(msg) {
+  const eb = document.getElementById('errorBox');
+  eb.textContent = msg;
+  eb.classList.add('show');
+  setTimeout(() => eb.classList.remove('show'), 5000);
+}
+
+function setLoading(v) {
+  document.getElementById('loading').classList.toggle('show', v);
+  document.getElementById('searchBtn').disabled = v;
+}
+
+function addHistory(id) {
+  history = [id, ...history.filter(h => h !== id)].slice(0, 20);
+  localStorage.setItem(historyKey, JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById('historyItems');
+  el.innerHTML = history.map(h => `<span class="history-item" onclick="document.getElementById('jobInput').value='${h}';search()">${h}</span>`).join('');
+}
+
+function competitionLevel(count) {
+  if (count === null || count === undefined) return {label:'N/A', cls:'na'};
+  if (count > 200) return {label:'🔴 激烈', cls:'high'};
+  if (count > 50) return {label:'🟡 中等', cls:'mid'};
+  return {label:'🟢 轻松', cls:'low'};
+}
+
+async function fetchJob(id) {
+  const resp = await fetch(`${API_URL}/api/job?id=${id}`);
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({detail: resp.statusText}));
+    throw new Error(err.detail || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+async function search() {
+  const input = document.getElementById('jobInput').value.trim();
+  const batchText = document.getElementById('batchTextarea').value.trim();
+  const isBatch = document.getElementById('batchInput').classList.contains('show') && batchText;
+  
+  const sr = document.getElementById('singleResult');
+  const br = document.getElementById('batchResults');
+  sr.classList.remove('show');
+  br.classList.remove('show');
+  
+  if (isBatch) {
+    const ids = batchText.split('\n').map(l => l.trim()).filter(l => l && /^\d{8}$/.test(l));
+    if (ids.length === 0) { showError('批量模式：请输入有效的岗位 ID（每行一个 8 位数字）'); return; }
+    await searchBatch(ids);
+    return;
+  }
+  
+  const jobId = getJobId(input);
+  if (!jobId) { showError('请输入有效的岗位 ID（8 位数字）或 JobsDB 链接'); return; }
+  
+  setLoading(true);
+  try {
+    const data = await fetchJob(jobId);
+    addHistory(jobId);
+    showSingleResult(data);
+  } catch (e) {
+    showError(`查询失败: ${e.message}`);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function showSingleResult(data) {
+  const sr = document.getElementById('singleResult');
+  
+  document.getElementById('resultTitle').innerHTML = `${data.title || '未知岗位'} <small>${data.company || ''}</small>`;
+  document.getElementById('resultId').textContent = `#${data.id}`;
+  
+  const apps = data.applicants;
+  const comp = competitionLevel(apps);
+  const badge = document.getElementById('resultBadge');
+  badge.textContent = `${comp.label}`;
+  badge.className = `competition-badge ${comp.cls}`;
+  
+  document.getElementById('metricApplicants').textContent = apps !== null && apps !== undefined ? apps.toLocaleString() : '—';
+  document.getElementById('metricApplicantsSub').textContent = apps !== null ? 'total applicants' : '数据不可用';
+  
+  document.getElementById('metricResume').textContent = data.resume_pct !== null ? `${data.resume_pct}%` : '—';
+  document.getElementById('metricResumeSub').textContent = data.resume_pct !== null ? '附简历比例' : '';
+  
+  document.getElementById('metricCover').textContent = data.cover_pct !== null ? `${data.cover_pct}%` : '—';
+  document.getElementById('metricCoverSub').textContent = data.cover_pct !== null ? '写Cover Letter比例' : '';
+  
+  sr.classList.add('show');
+}
+
+async function searchBatch(ids) {
+  setLoading(true);
+  try {
+    const resp = await fetch(`${API_URL}/api/batch?ids=${ids.join(',')}`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const results = await resp.json();
+    
+    ids.forEach(id => addHistory(id));
+    showBatchResults(results);
+  } catch (e) {
+    showError(`批量查询失败: ${e.message}`);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function showBatchResults(results) {
+  const br = document.getElementById('batchResults');
+  const tbody = document.getElementById('batchTableBody');
+  
+  // Stats
+  const appsList = results.filter(r => r.applicants !== null && r.applicants !== undefined).map(r => r.applicants);
+  if (appsList.length > 1) {
+    const avg = Math.round(appsList.reduce((a,b)=>a+b,0) / appsList.length);
+    const max = Math.max(...appsList);
+    const min = Math.min(...appsList);
+    const sorted = [...appsList].sort((a,b)=>a-b);
+    const med = sorted[Math.floor(sorted.length/2)];
+    
+    document.getElementById('statsSummary').classList.add('show');
+    document.getElementById('statsCards').innerHTML = `
+      <div class="stat-card"><span class="stat-num">${results.length}</span><span class="stat-label">岗位数</span></div>
+      <div class="stat-card"><span class="stat-num">${avg}</span><span class="stat-label">平均申请人数</span></div>
+      <div class="stat-card"><span class="stat-num">${med}</span><span class="stat-label">中位数</span></div>
+      <div class="stat-card"><span class="stat-num">${min}</span><span class="stat-label">最少</span></div>
+      <div class="stat-card"><span class="stat-num">${max}</span><span class="stat-label">最多</span></div>
+    `;
+  } else {
+    document.getElementById('statsSummary').classList.remove('show');
+  }
+  
+  tbody.innerHTML = results.map(r => {
+    const comp = competitionLevel(r.applicants);
+    const apps = r.applicants !== null && r.applicants !== undefined ? r.applicants.toLocaleString() : '—';
+    const cv = r.resume_pct !== null ? `${r.resume_pct}%` : '—';
+    const cl = r.cover_pct !== null ? `${r.cover_pct}%` : '—';
+    const title = r.title || '未知';
+    const company = r.company || '';
+    const id = r.id || '';
+    return `<tr><td><code>${id}</code></td><td>${title}<br><small style="color:#64748b;font-size:12px">${company}</small></td><td class="num">${apps}</td><td>${cv}</td><td>${cl}</td><td><span class="tag ${comp.cls}">${comp.label}</span></td></tr>`;
+  }).join('');
+  
+  br.classList.add('show');
+}
+
+init();
+</script>
+</body>
+</html>
