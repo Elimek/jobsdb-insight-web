@@ -8,13 +8,35 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0f172a; color:#e2e8f0; min-height:100vh; }
+
 .header { background:linear-gradient(135deg,#1e293b,#0f172a); border-bottom:1px solid #1e293b; padding:20px; text-align:center; }
 .header h1 { font-size:28px; background:linear-gradient(135deg,#60a5fa,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 .header p { color:#64748b; font-size:14px; margin-top:4px; }
-.container { max-width:900px; margin:0 auto; padding:20px; }
+.container { max-width:920px; margin:0 auto; padding:20px; }
+
+/* Setup / Token */
+.setup-card { background:#1e293b; border-radius:16px; padding:24px; margin-bottom:20px; }
+.setup-card h2 { font-size:16px; margin-bottom:12px; color:#e2e8f0; }
+.setup-card .step { background:#0f172a; border-radius:10px; padding:12px 16px; margin-bottom:10px; font-size:14px; color:#94a3b8; line-height:1.6; }
+.setup-card .step strong { color:#e2e8f0; }
+.setup-card .step code { background:#1e293b; padding:2px 8px; border-radius:4px; font-size:12px; color:#60a5fa; }
+.setup-card .step img { display:none; }
+.setup-row { display:flex; gap:10px; margin-top:12px; }
+.setup-row input { flex:1; background:#0f172a; border:1px solid #334155; border-radius:10px; padding:12px 16px; font-size:14px; color:#e2e8f0; outline:none; font-family:monospace; }
+.setup-row input:focus { border-color:#60a5fa; }
+.setup-row button { background:linear-gradient(135deg,#60a5fa,#3b82f6); border:none; border-radius:10px; padding:12px 24px; font-size:14px; font-weight:600; color:#fff; cursor:pointer; white-space:nowrap; }
+.setup-row button:hover { opacity:.85; }
+.setup-row button.danger { background:linear-gradient(135deg,#ef4444,#dc2626); }
+.status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+.status-dot.online { background:#34d399; }
+.status-dot.offline { background:#f87171; }
+.token-status { font-size:13px; margin-top:8px; }
+.token-status .online { color:#34d399; }
+.token-status .offline { color:#f87171; }
 
 /* Search */
-.search-box { background:#1e293b; border-radius:16px; padding:24px; margin-bottom:20px; }
+.search-box { background:#1e293b; border-radius:16px; padding:24px; margin-bottom:20px; display:none; }
+.search-box.show { display:block; }
 .search-box label { display:block; font-size:14px; color:#94a3b8; margin-bottom:8px; }
 .search-row { display:flex; gap:10px; }
 .search-row input { flex:1; background:#0f172a; border:1px solid #334155; border-radius:10px; padding:14px 18px; font-size:16px; color:#e2e8f0; outline:none; transition:border .2s; }
@@ -24,17 +46,13 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .search-row button:hover { opacity:.85; }
 .search-row button:disabled { opacity:.4; cursor:not-allowed; }
 .hint { font-size:12px; color:#475569; margin-top:8px; }
-.hint a { color:#60a5fa; text-decoration:none; }
-.hint a:hover { text-decoration:underline; }
-
-/* Batch input */
 .batch-toggle { color:#60a5fa; font-size:13px; cursor:pointer; margin-top:8px; display:inline-block; }
 .batch-input { display:none; margin-top:8px; }
 .batch-input textarea { width:100%; background:#0f172a; border:1px solid #334155; border-radius:10px; padding:12px; font-size:13px; color:#e2e8f0; resize:vertical; min-height:80px; outline:none; font-family:monospace; }
 .batch-input textarea:focus { border-color:#60a5fa; }
 .batch-input.show { display:block; }
 
-/* Result card */
+/* Result */
 .result { display:none; background:#1e293b; border-radius:16px; padding:24px; margin-bottom:16px; }
 .result.show { display:block; }
 .result-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
@@ -51,14 +69,12 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .metric.resume .metric-value { color:#34d399; }
 .metric.cover .metric-value { color:#fbbf24; }
 .metric-label { font-size:12px; color:#94a3b8; margin-top:4px; }
-.metric-sub { font-size:11px; color:#475569; margin-top:2px; }
 .competition-badge { display:inline-block; padding:4px 16px; border-radius:20px; font-size:13px; font-weight:600; margin-top:12px; }
 .competition-badge.high { background:rgba(248,113,113,0.15); color:#f87171; }
 .competition-badge.mid { background:rgba(251,191,36,0.15); color:#fbbf24; }
 .competition-badge.low { background:rgba(52,211,153,0.15); color:#34d399; }
-.competition-badge.na { background:rgba(100,116,139,0.15); color:#64748b; }
 
-/* Batch results table */
+/* Batch results */
 .batch-results { display:none; margin-top:16px; }
 .batch-results.show { display:block; }
 table { width:100%; border-collapse:collapse; background:#1e293b; border-radius:12px; overflow:hidden; }
@@ -71,17 +87,14 @@ tr:hover { background:#263548; }
 .tag.mid { background:rgba(251,191,36,0.15); color:#fbbf24; }
 .tag.low { background:rgba(52,211,153,0.15); color:#34d399; }
 
-/* Loading */
 .loading { display:none; text-align:center; padding:40px; }
 .loading.show { display:block; }
 .spinner { width:40px; height:40px; border:3px solid #1e293b; border-top:3px solid #60a5fa; border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
 @keyframes spin { to { transform:rotate(360deg); } }
 
-/* Error */
 .error-box { display:none; background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.2); border-radius:12px; padding:16px; margin-bottom:16px; color:#f87171; font-size:14px; }
 .error-box.show { display:block; }
 
-/* Stats summary */
 .stats-summary { display:none; margin-bottom:16px; }
 .stats-summary.show { display:block; }
 .stats-cards { display:flex; gap:10px; flex-wrap:wrap; }
@@ -89,8 +102,8 @@ tr:hover { background:#263548; }
 .stat-card .stat-num { font-size:22px; font-weight:700; color:#60a5fa; display:block; }
 .stat-card .stat-label { font-size:11px; color:#64748b; }
 
-/* History */
-.history { margin-top:24px; }
+.history { margin-top:24px; display:none; }
+.history.show { display:block; }
 .history h3 { font-size:14px; color:#64748b; margin-bottom:8px; }
 .history-items { display:flex; flex-wrap:wrap; gap:6px; }
 .history-item { padding:4px 12px; background:#1e293b; border-radius:6px; font-size:12px; color:#94a3b8; cursor:pointer; transition:background .2s; }
@@ -105,14 +118,37 @@ code { font-family:'Fira Code',monospace; font-size:12px; color:#60a5fa; backgro
 
 <div class="header">
   <h1>📊 JobsDB Insight</h1>
-  <p>实时查询岗位申请人数 · 无需申请</p>
+  <p>实时查询岗位申请人数 · 无需安装 · 任何浏览器</p>
 </div>
 
 <div class="container">
 
+  <!-- Setup -->
+  <div class="setup-card" id="setupCard">
+    <h2>🔑 连接 JobsDB</h2>
+    <div class="step">
+      <strong>第一步：</strong> 在浏览器打开 <code>hk.jobsdb.com</code> 并确保已登录
+    </div>
+    <div class="step">
+      <strong>第二步：</strong> 打开开发者工具 <code>F12</code> → 切换到 <code>Application</code> / <code>Storage</code> 标签
+    </div>
+    <div class="step">
+      <strong>第三步：</strong> 左侧找到 <code>Cookies</code> → <code>hk.jobsdb.com</code>，找到名为 <code>sol_id</code> 的 cookie，复制它的值
+      <br><small style="color:#475569">任何浏览器均可：Chrome / Edge / Brave / Firefox / Safari</small>
+    </div>
+    <div class="step">
+      <strong>第四步：</strong> 粘贴到下方输入框
+    </div>
+    <div class="setup-row">
+      <input type="text" id="tokenInput" placeholder="粘贴 sol_id 的值...">
+      <button onclick="saveToken()">✅ 连接</button>
+    </div>
+    <div class="token-status" id="tokenStatus"></div>
+  </div>
+
   <!-- Search -->
-  <div class="search-box">
-    <label>输入 JobsDB 岗位 ID 或 URL</label>
+  <div class="search-box" id="searchBox">
+    <label>输入 JobsDB 岗位 ID 或链接</label>
     <div class="search-row">
       <input type="text" id="jobInput" placeholder="例: 91640131 或 https://hk.jobsdb.com/job/91640131" autocomplete="off">
       <button id="searchBtn" onclick="search()">🔍 查询</button>
@@ -120,7 +156,8 @@ code { font-family:'Fira Code',monospace; font-size:12px; color:#60a5fa; backgro
     <div class="hint">
       支持批量 —
       <span class="batch-toggle" onclick="toggleBatch()">切换到批量模式</span>
-      &nbsp;·&nbsp; 开源项目 <a href="https://github.com/Elimek/jobsdb-insight-web" target="_blank">GitHub</a>
+      &nbsp;·&nbsp;
+      <span class="batch-toggle" onclick="resetToken()" style="color:#ef4444">更换 token</span>
     </div>
     <div class="batch-input" id="batchInput">
       <textarea id="batchTextarea" placeholder="每行一个岗位 ID&#10;91640131&#10;92206861&#10;92136321"></textarea>
@@ -149,17 +186,14 @@ code { font-family:'Fira Code',monospace; font-size:12px; color:#60a5fa; backgro
       <div class="metric applicants">
         <div class="metric-value" id="metricApplicants">—</div>
         <div class="metric-label">总申请人数</div>
-        <div class="metric-sub" id="metricApplicantsSub"></div>
       </div>
       <div class="metric resume">
         <div class="metric-value" id="metricResume">—</div>
         <div class="metric-label">附简历</div>
-        <div class="metric-sub" id="metricResumeSub"></div>
       </div>
       <div class="metric cover">
         <div class="metric-value" id="metricCover">—</div>
         <div class="metric-label">Cover Letter</div>
-        <div class="metric-sub" id="metricCoverSub"></div>
       </div>
     </div>
   </div>
@@ -177,7 +211,6 @@ code { font-family:'Fira Code',monospace; font-size:12px; color:#60a5fa; backgro
     </table>
   </div>
 
-  <!-- History -->
   <div class="history" id="history">
     <h3>📋 查询历史</h3>
     <div class="history-items" id="historyItems"></div>
@@ -186,25 +219,69 @@ code { font-family:'Fira Code',monospace; font-size:12px; color:#60a5fa; backgro
 </div>
 
 <div class="footer">
-  Built with <a href="https://github.com/Elimek/jobsdb-insight-web">JobsDB Insight</a> · 
-  Data from JobsDB HK GraphQL API · Not affiliated with JobsDB
+  <a href="https://github.com/Elimek/jobsdb-insight-web" target="_blank">GitHub</a> · 
+  数据来自 JobsDB HK · 非官方工具 · 需要有效的 JobsDB 登录会话
 </div>
 
 <script>
-const historyKey = 'jobsdb_insight_history';
-let history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+const TOKEN_KEY = 'jobsdb_sol_id';
 
+// ── Token management ──
+function getToken() { return localStorage.getItem(TOKEN_KEY); }
+function saveToken() {
+  const val = document.getElementById('tokenInput').value.trim();
+  if (!val) { showError('请输入 sol_id'); return; }
+  localStorage.setItem(TOKEN_KEY, val);
+  document.getElementById('tokenStatus').innerHTML = '<span class="status-dot online"></span><span class="online">Token 已保存 ✅</span>';
+  showApp();
+}
+function resetToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  document.getElementById('setupCard').style.display = 'block';
+  document.getElementById('searchBox').classList.remove('show');
+  document.getElementById('history').classList.remove('show');
+}
+function hasToken() { return !!getToken(); }
+
+// ── API call ──
+async function gql(query) {
+  const token = getToken();
+  if (!token) throw new Error('No token');
+  
+  const resp = await fetch(API_URL + '/api/gql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, token })
+  });
+  
+  if (!resp.ok) {
+    if (resp.status === 503) throw new Error('Token 无效或已过期。请重新获取 sol_id');
+    throw new Error(`服务器错误 (${resp.status})`);
+  }
+  return resp.json();
+}
+
+// ── UI ──
 function init() {
+  if (hasToken()) {
+    document.getElementById('tokenInput').value = '••••••••';
+    document.getElementById('tokenStatus').innerHTML = '<span class="status-dot online"></span><span class="online">Token 已保存 ✅</span>';
+    showApp();
+  }
   renderHistory();
   document.getElementById('jobInput').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
 }
 
+function showApp() {
+  document.getElementById('setupCard').style.display = 'none';
+  document.getElementById('searchBox').classList.add('show');
+  document.getElementById('history').classList.add('show');
+}
+
 function getJobId(input) {
   input = input.trim();
-  // URL: extract ID from /job/XXXXX
   const urlMatch = input.match(/\/job\/(\d{8})/);
   if (urlMatch) return urlMatch[1];
-  // Just digits
   if (/^\d{8}$/.test(input)) return input;
   return null;
 }
@@ -212,14 +289,14 @@ function getJobId(input) {
 function toggleBatch() {
   const bi = document.getElementById('batchInput');
   bi.classList.toggle('show');
-  document.querySelector('.batch-toggle').textContent = bi.classList.contains('show') ? '切换到单查询' : '切换到批量模式';
+  document.querySelector('.batch-toggle:first-of-type').textContent = bi.classList.contains('show') ? '切换到单查询' : '切换到批量模式';
 }
 
 function showError(msg) {
   const eb = document.getElementById('errorBox');
   eb.textContent = msg;
   eb.classList.add('show');
-  setTimeout(() => eb.classList.remove('show'), 5000);
+  setTimeout(() => eb.classList.remove('show'), 6000);
 }
 
 function setLoading(v) {
@@ -228,14 +305,17 @@ function setLoading(v) {
 }
 
 function addHistory(id) {
+  let history = JSON.parse(localStorage.getItem('jobsdb_history') || '[]');
   history = [id, ...history.filter(h => h !== id)].slice(0, 20);
-  localStorage.setItem(historyKey, JSON.stringify(history));
+  localStorage.setItem('jobsdb_history', JSON.stringify(history));
   renderHistory();
 }
 
 function renderHistory() {
-  const el = document.getElementById('historyItems');
-  el.innerHTML = history.map(h => `<span class="history-item" onclick="document.getElementById('jobInput').value='${h}';search()">${h}</span>`).join('');
+  const history = JSON.parse(localStorage.getItem('jobsdb_history') || '[]');
+  document.getElementById('historyItems').innerHTML = history.map(h =>
+    `<span class="history-item" onclick="document.getElementById('jobInput').value='${h}';search()">${h}</span>`
+  ).join('');
 }
 
 function competitionLevel(count) {
@@ -245,121 +325,106 @@ function competitionLevel(count) {
   return {label:'🟢 轻松', cls:'low'};
 }
 
-async function fetchJob(id) {
-  const resp = await fetch(`${API_URL}/api/job?id=${id}`);
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({detail: resp.statusText}));
-    throw new Error(err.detail || `HTTP ${resp.status}`);
-  }
-  return resp.json();
-}
-
+// ── Search ──
 async function search() {
   const input = document.getElementById('jobInput').value.trim();
   const batchText = document.getElementById('batchTextarea').value.trim();
   const isBatch = document.getElementById('batchInput').classList.contains('show') && batchText;
   
-  const sr = document.getElementById('singleResult');
-  const br = document.getElementById('batchResults');
-  sr.classList.remove('show');
-  br.classList.remove('show');
+  document.getElementById('singleResult').classList.remove('show');
+  document.getElementById('batchResults').classList.remove('show');
+  
+  if (!hasToken()) { showError('请先粘贴 sol_id 连接 JobsDB'); return; }
   
   if (isBatch) {
-    const ids = batchText.split('\n').map(l => l.trim()).filter(l => l && /^\d{8}$/.test(l));
-    if (ids.length === 0) { showError('批量模式：请输入有效的岗位 ID（每行一个 8 位数字）'); return; }
+    const ids = batchText.split('\n').map(l => l.trim()).filter(l => /^\d{8}$/.test(l));
+    if (ids.length === 0) { showError('批量：请输入有效的岗位 ID（每行一个 8 位数字）'); return; }
     await searchBatch(ids);
     return;
   }
   
   const jobId = getJobId(input);
-  if (!jobId) { showError('请输入有效的岗位 ID（8 位数字）或 JobsDB 链接'); return; }
-  
+  if (!jobId) { showError('请输入有效的岗位 ID 或 JobsDB 链接'); return; }
+  addHistory(jobId);
   setLoading(true);
+  
   try {
-    const data = await fetchJob(jobId);
-    addHistory(jobId);
+    const data = await fetchSingle(jobId);
     showSingleResult(data);
   } catch (e) {
-    showError(`查询失败: ${e.message}`);
-  } finally {
-    setLoading(false);
+    showError(e.message);
+  } finally { setLoading(false); }
+}
+
+async function fetchSingle(id) {
+  const result = await gql(`query { jobDetails(id: "${id}") { insights { __typename ... on ApplicantCount { count } ... on ApplicantsWithResumePercentage { percentage } ... on ApplicantsWithCoverLetterPercentage { percentage } } job { id title advertiser { name } } } }`);
+  const jd = result.data?.jobDetails;
+  if (!jd || !jd.insights) throw new Error('岗位数据不可用');
+  
+  const out = { id };
+  for (const ins of jd.insights) {
+    if (ins.__typename === 'ApplicantCount') out.applicants = ins.count;
+    else if (ins.__typename === 'ApplicantsWithResumePercentage') out.resume_pct = ins.percentage;
+    else if (ins.__typename === 'ApplicantsWithCoverLetterPercentage') out.cover_pct = ins.percentage;
   }
+  out.title = jd.job?.title || null;
+  out.company = jd.job?.advertiser?.name || null;
+  return out;
 }
 
 function showSingleResult(data) {
   const sr = document.getElementById('singleResult');
-  
-  document.getElementById('resultTitle').innerHTML = `${data.title || '未知岗位'} <small>${data.company || ''}</small>`;
+  document.getElementById('resultTitle').innerHTML = `${data.title || '未知'} <small>${data.company || ''}</small>`;
   document.getElementById('resultId').textContent = `#${data.id}`;
   
-  const apps = data.applicants;
-  const comp = competitionLevel(apps);
+  const comp = competitionLevel(data.applicants);
   const badge = document.getElementById('resultBadge');
-  badge.textContent = `${comp.label}`;
+  badge.textContent = comp.label;
   badge.className = `competition-badge ${comp.cls}`;
   
-  document.getElementById('metricApplicants').textContent = apps !== null && apps !== undefined ? apps.toLocaleString() : '—';
-  document.getElementById('metricApplicantsSub').textContent = apps !== null ? 'total applicants' : '数据不可用';
-  
+  document.getElementById('metricApplicants').textContent = data.applicants !== null ? data.applicants.toLocaleString() : '—';
   document.getElementById('metricResume').textContent = data.resume_pct !== null ? `${data.resume_pct}%` : '—';
-  document.getElementById('metricResumeSub').textContent = data.resume_pct !== null ? '附简历比例' : '';
-  
   document.getElementById('metricCover').textContent = data.cover_pct !== null ? `${data.cover_pct}%` : '—';
-  document.getElementById('metricCoverSub').textContent = data.cover_pct !== null ? '写Cover Letter比例' : '';
-  
   sr.classList.add('show');
 }
 
 async function searchBatch(ids) {
   setLoading(true);
   try {
-    const resp = await fetch(`${API_URL}/api/batch?ids=${ids.join(',')}`);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const results = await resp.json();
-    
-    ids.forEach(id => addHistory(id));
+    const results = [];
+    for (const id of ids) {
+      try { results.push(await fetchSingle(id)); }
+      catch(e) { results.push({ id, error: e.message }); }
+    }
     showBatchResults(results);
-  } catch (e) {
-    showError(`批量查询失败: ${e.message}`);
-  } finally {
-    setLoading(false);
-  }
+  } catch (e) { showError(e.message); }
+  finally { setLoading(false); }
 }
 
 function showBatchResults(results) {
   const br = document.getElementById('batchResults');
   const tbody = document.getElementById('batchTableBody');
   
-  // Stats
-  const appsList = results.filter(r => r.applicants !== null && r.applicants !== undefined).map(r => r.applicants);
+  const appsList = results.filter(r => r.applicants !== null).map(r => r.applicants);
   if (appsList.length > 1) {
     const avg = Math.round(appsList.reduce((a,b)=>a+b,0) / appsList.length);
-    const max = Math.max(...appsList);
-    const min = Math.min(...appsList);
-    const sorted = [...appsList].sort((a,b)=>a-b);
-    const med = sorted[Math.floor(sorted.length/2)];
-    
     document.getElementById('statsSummary').classList.add('show');
-    document.getElementById('statsCards').innerHTML = `
-      <div class="stat-card"><span class="stat-num">${results.length}</span><span class="stat-label">岗位数</span></div>
-      <div class="stat-card"><span class="stat-num">${avg}</span><span class="stat-label">平均申请人数</span></div>
-      <div class="stat-card"><span class="stat-num">${med}</span><span class="stat-label">中位数</span></div>
-      <div class="stat-card"><span class="stat-num">${min}</span><span class="stat-label">最少</span></div>
-      <div class="stat-card"><span class="stat-num">${max}</span><span class="stat-label">最多</span></div>
-    `;
-  } else {
-    document.getElementById('statsSummary').classList.remove('show');
+    document.getElementById('statsCards').innerHTML = [
+      `<div class="stat-card"><span class="stat-num">${results.length}</span><span class="stat-label">岗位数</span></div>`,
+      `<div class="stat-card"><span class="stat-num">${avg}</span><span class="stat-label">平均</span></div>`,
+      `<div class="stat-card"><span class="stat-num">${Math.max(...appsList)}</span><span class="stat-label">最多</span></div>`,
+      `<div class="stat-card"><span class="stat-num">${Math.min(...appsList)}</span><span class="stat-label">最少</span></div>`
+    ].join('');
   }
   
   tbody.innerHTML = results.map(r => {
     const comp = competitionLevel(r.applicants);
-    const apps = r.applicants !== null && r.applicants !== undefined ? r.applicants.toLocaleString() : '—';
+    const apps = r.applicants !== null ? r.applicants.toLocaleString() : '—';
     const cv = r.resume_pct !== null ? `${r.resume_pct}%` : '—';
     const cl = r.cover_pct !== null ? `${r.cover_pct}%` : '—';
     const title = r.title || '未知';
     const company = r.company || '';
-    const id = r.id || '';
-    return `<tr><td><code>${id}</code></td><td>${title}<br><small style="color:#64748b;font-size:12px">${company}</small></td><td class="num">${apps}</td><td>${cv}</td><td>${cl}</td><td><span class="tag ${comp.cls}">${comp.label}</span></td></tr>`;
+    return `<tr><td><code>${r.id}</code></td><td>${title}<br><small style="color:#64748b;font-size:12px">${company}</small></td><td class="num">${apps}</td><td>${cv}</td><td>${cl}</td><td><span class="tag ${comp.cls}">${comp.label}</span></td></tr>`;
   }).join('');
   
   br.classList.add('show');
