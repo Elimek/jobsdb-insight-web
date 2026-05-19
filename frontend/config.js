@@ -1,10 +1,9 @@
-// Backend API URL for JobsDB Insight
-// Change this to your deployed backend URL
+// JobsDB Insight - Backend API URL
+// Change this to your deployed backend address
 const API_URL = (() => {
-  // Auto-detect: if running locally, use localhost
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:8899';
   }
-  // For GitHub Pages deployment, point to your Render/Railway backend
+  // TODO: Replace with your Render/Railway backend URL
   return 'https://YOUR-BACKEND.onrender.com';
 })();
